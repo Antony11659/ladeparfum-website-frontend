@@ -105,3 +105,9 @@
   .about { padding-block: 64px; }
   .advantages { max-width: 800px; margin-inline: auto; }
 }
+
+/* Router links retain the existing button presentation. */
+a.button, a.bottom-navigation-item { text-decoration: none; }
+a.bottom-navigation-item { color: inherit; }
+a.bottom-navigation-item.is-active { color: var(--violet); }
+a:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }

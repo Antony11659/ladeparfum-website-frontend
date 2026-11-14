@@ -1,3 +1,6 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import ProductDetails from './pages/ProductDetails.jsx'
+import Catalog from './pages/Catalog.jsx'
 import Header from './components/Header.jsx'
 import Home from './pages/Home.jsx'
 import Footer from './components/Footer.jsx'
@@ -6,12 +9,16 @@ import './App.css'
 
 function App() {
   return (
-    <>
+    <BrowserRouter>
       <Header />
-      <Home />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/catalog" element={<Catalog />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
+      </Routes>
       <Footer />
       <BottomNavigation />
-    </>
+    </BrowserRouter>
   )
 }
 

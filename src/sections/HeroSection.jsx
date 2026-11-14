@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import Icon from '../components/Icon.jsx'
 import PerfumePlaceholder from '../components/PerfumePlaceholder.jsx'
 
@@ -8,7 +9,7 @@ function HeroSection() {
         <p className="eyebrow">ИСКУССТВО АРОМАТА</p>
         <h1 id="hero-title">Аромат, который<br /><em>расскажет о вас</em></h1>
         <p className="hero-description">Откройте мир исключительных ароматов.</p>
-        <button className="button" type="button">ОТКРЫТЬ КАТАЛОГ <Icon name="arrow" /></button>
+        <Link className="button" to="/catalog">ОТКРЫТЬ КАТАЛОГ <Icon name="arrow" /></Link>
       </div>
       <figure className="hero-figure">
         <PerfumePlaceholder hero />
