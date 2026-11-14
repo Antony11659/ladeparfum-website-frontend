@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useCart } from '../context/cartContext.js'
 import ProductGallery from '../components/ProductGallery.jsx'
 import { fetchPerfumes, fetchPrices } from '../services/perfumeApi.js'
 import { bottleImages } from '../config/bottleImages.js'
 import './ProductDetails.css'
 
 function ProductDetailsContent({ id }) {
+  const { addItem, cartCount } = useCart()
+  const [cartMessage, setCartMessage] = useState('')
   const [status, setStatus] = useState('loading')
   const [product, setProduct] = useState(null)
   const [prices, setPrices] = useState([])
@@ -58,6 +61,15 @@ function ProductDetailsContent({ id }) {
   const volume = availableVolumes.includes(selectedVolume) ? selectedVolume : availableVolumes[0]
   const selectedPrice = prices.find((price) => price.volume_ml === volume && Number.isFinite(price.website_price) && price.website_price > 0)?.website_price
 
+  const selectedVariant = product?.variants?.find((variant) => variant.volume_ml === volume)
+  const canAddToCart = Number.isSafeInteger(selectedVariant?.id) && selectedVariant.id > 0 && selectedPrice !== undefined
+
+  function addToCart() {
+    if (!canAddToCart) return
+    addItem(selectedVariant.id)
+    setCartMessage(`Товар добавлен в корзину. Всего флаконов: ${cartCount + 1}.`)
+  }
+
   return (
     <main className="product-details section-shell" lang="ru">
       <Link className="product-back" to="/catalog">← В каталог</Link>
@@ -81,8 +93,8 @@ function ProductDetailsContent({ id }) {
                 <p className="product-details-price" aria-live="polite">{selectedPrice.toLocaleString('ru-RU')} ₽</p>
               </>
             ) : <p className="product-no-volumes">Нет доступных объёмов с актуальной ценой и фотографией флакона.</p>}
-            <button className="button product-cart-button" type="button" disabled aria-describedby="product-cart-note">В КОРЗИНУ · СКОРО</button>
-            <p id="product-cart-note" className="product-cart-note">Добавление в корзину скоро появится.</p>
+            <button className="button product-cart-button" type="button" disabled={!canAddToCart} onClick={addToCart}>В КОРЗИНУ</button>
+            <p className="product-cart-note" role="status">{cartMessage}</p>
             {product.fragrance_family && <section className="product-characteristics"><h2>Характеристики аромата-референса</h2><dl><dt>Семейство ароматов</dt><dd>{product.fragrance_family}</dd></dl></section>}
           </div>
         </div>

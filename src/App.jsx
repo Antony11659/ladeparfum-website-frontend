@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import ProductDetails from './pages/ProductDetails.jsx'
+import Cart from './pages/Cart.jsx'
 import Catalog from './pages/Catalog.jsx'
 import Header from './components/Header.jsx'
 import Home from './pages/Home.jsx'
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/cart" element={<Cart />} />
         <Route path="/product/:id" element={<ProductDetails />} />
       </Routes>
       <Footer />
