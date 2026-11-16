@@ -67,8 +67,8 @@ function Cart() {
               </dl>
               {data.status === 'success' && !totals && <p className="cart-error" role="alert">Не удалось рассчитать сумму. Проверьте недоступные товары или цены.</p>}
               <p className="cart-summary-note">Предварительная стоимость. Доставка будет рассчитана при оформлении заказа.</p>
-              <button className="button cart-checkout" type="button" disabled aria-describedby="cart-checkout-note">ОФОРМИТЬ ЗАКАЗ</button>
-              <p id="cart-checkout-note" className="cart-summary-note">Скоро. Оформление заказа пока недоступно.</p>
+              {data.status === 'success' && totals ? <Link className="button cart-checkout" to="/checkout">ОФОРМИТЬ ЗАКАЗ</Link> : <button className="button cart-checkout" type="button" disabled>ОФОРМИТЬ ЗАКАЗ</button>}
+              <p id="cart-checkout-note" className="cart-summary-note">На следующем шаге можно проверить доставку. Оплата пока недоступна.</p>
             </section>
           </div>
         </div>

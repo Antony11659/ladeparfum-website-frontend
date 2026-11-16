@@ -1,0 +1,24 @@
+.checkout-page { flex: 1; padding-block: 28px 40px; }
+.checkout-page h1 { font-size: clamp(22px, 5vw, 36px); font-weight: 500; letter-spacing: .06em; overflow-wrap: anywhere; margin-bottom: 16px; }
+.checkout-page h2 { font-size: 16px; font-weight: 500; letter-spacing: .04em; margin-bottom: 20px; }
+.checkout-page h3 { font-size: 18px; font-weight: 500; }
+.checkout-back { display: inline-block; color: var(--violet); margin-bottom: 24px; }
+.checkout-layout, .checkout-details, .checkout-sidebar { display: grid; gap: 20px; align-content: start; }
+.checkout-layout > *, .checkout-details > *, .checkout-sidebar > * { min-width: 0; }
+.checkout-page form { display: grid; gap: 12px; }
+.checkout-page label { display: block; font-size: 14px; margin-bottom: 6px; }
+.checkout-page input, .checkout-page textarea { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 48px; font: inherit; font-size: 16px; background: var(--white); color: var(--black); }
+.checkout-page textarea { resize: vertical; }
+.checkout-page input:focus-visible, .checkout-page textarea:focus-visible, .checkout-page a:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.checkout-page .button { width: 100%; margin-top: 14px; white-space: normal; overflow-wrap: anywhere; }
+.checkout-page button:disabled { opacity: .55; cursor: not-allowed; }
+.checkout-note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+.checkout-field-error { font-size: 13px; color: var(--violet); }
+.checkout-suggestions { list-style: none; padding: 0; margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; max-height: 300px; overflow: auto; }
+.checkout-suggestions li + li { border-top: 1px solid var(--border); }
+.checkout-suggestions button { width: 100%; min-height: 48px; text-align: left; padding: 12px; border: 0; background: var(--white); overflow-wrap: anywhere; }
+.checkout-suggestions button:hover { background: #f6f3f9; }
+.checkout-pickup, .checkout-delivery { border-left: 2px solid var(--gold); padding: 16px; background: #faf8fd; margin-top: 20px; overflow-wrap: anywhere; }
+.checkout-pickup p, .checkout-delivery p { margin-top: 8px; }
+@media (min-width: 768px) { .checkout-page { padding-block: 40px 56px; } }
+@media (min-width: 1024px) { .checkout-layout { grid-template-columns: minmax(0, 1fr) 360px; gap: 32px; align-items: start; } }
