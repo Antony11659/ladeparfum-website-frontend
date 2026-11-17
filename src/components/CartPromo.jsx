@@ -21,6 +21,14 @@ function CartPromo({ onPricingModeChange }) {
   const [storageMessage, setStorageMessage] = useState('')
   const controllerRef = useRef(null)
 
+  // Keep the first argument compatible with Cart's pricing-mode setter.
+  // Only an API-validated code is exposed as active; input/saved codes are not.
+  useEffect(() => {
+    const validatedCode = status === 'success' && activeCode ? activeCode : null
+    const pricingMode = validatedCode ? 'discount' : 'website'
+    onPricingModeChange(pricingMode, { pricingMode, activeCode: validatedCode, validationStatus: status })
+  }, [activeCode, status, onPricingModeChange])
+
   function storeCode(value) {
     try {
       if (value) localStorage.setItem(PROMO_STORAGE_KEY, value)
@@ -41,13 +49,11 @@ function CartPromo({ onPricingModeChange }) {
         if (controller.signal.aborted) return
         if (valid) {
           setActiveCode(request.code)
-          onPricingModeChange('discount')
           storeCode(request.code)
           setStatus('success')
           setMessage('Промокод применён. Цены пересчитаны.')
         } else {
           setActiveCode('')
-          onPricingModeChange('website')
           storeCode('')
           setStatus('invalid')
           setMessage('Промокод недействителен. Проверьте код и попробуйте снова.')
@@ -56,12 +62,11 @@ function CartPromo({ onPricingModeChange }) {
       .catch(() => {
         if (controller.signal.aborted) return
         setActiveCode('')
-        onPricingModeChange('website')
         setStatus('error')
         setMessage('Не удалось проверить промокод. Пока действуют обычные цены. Повторите проверку.')
       })
     return () => controller.abort()
-  }, [request, onPricingModeChange])
+  }, [request])
 
   function validateCode(value) {
     const normalized = value.trim().toUpperCase()
@@ -72,7 +77,6 @@ function CartPromo({ onPricingModeChange }) {
     controllerRef.current?.abort()
     setCode(normalized)
     setActiveCode('')
-    onPricingModeChange('website')
     setStatus('loading')
     setMessage('')
     setRequest((current) => ({ code: normalized, attempt: current.attempt + 1 }))
@@ -84,7 +88,6 @@ function CartPromo({ onPricingModeChange }) {
     setCode('')
     setActiveCode('')
     storeCode('')
-    onPricingModeChange('website')
     setStatus('idle')
     setMessage('Промокод удалён. Действуют обычные цены.')
   }
