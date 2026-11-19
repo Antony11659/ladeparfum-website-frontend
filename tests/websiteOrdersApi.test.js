@@ -47,7 +47,7 @@ test('website order adapter: mocked requests only', async (t) => {
   await t.test('URL, headers, exact key, JSON payload, signal and backend values', async () => {
     const controller = new AbortController()
     reply = async () => response(201, { success: true, order })
-    assert.deepEqual(await createWebsiteOrder({ ...input, signal: controller.signal }), order)
+    assert.deepEqual(await createWebsiteOrder({ ...input, signal: controller.signal }), { order, paymentAccessToken: null })
     assert.equal(calls.length, 1)
     const [url, options] = calls[0]
     assert.equal(url, 'http://localhost:3000/website/orders')

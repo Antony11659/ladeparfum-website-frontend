@@ -72,5 +72,6 @@ export async function createWebsiteOrder({ payload, idempotencyKey, signal } = {
       kind: 'invalid_response', status: response.status, outcomeUnknown: true,
     })
   }
-  return order
+  const token = result.paymentAccessToken
+  return { order, paymentAccessToken: typeof token === 'string' && token.trim() ? token : null }
 }

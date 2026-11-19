@@ -6,6 +6,9 @@ import { fetchPerfumes, fetchPrices } from '../services/perfumeApi.js'
 import { calculateCartTotals, formatRubles, resolveCartLines } from '../services/cartPricing.js'
 import { deliveryConfigured, deliveryRequest, normalizeRussianPhone } from '../services/deliveryApi.js'
 import { createWebsiteOrder } from '../services/websiteOrdersApi.js'
+import { createWebsitePayment, WEBSITE_OZON_PAY_ENABLED } from '../services/websitePaymentsApi.js'
+import { savePaymentReturnContext } from '../services/paymentReturnContext.js'
+import { validateOzonPaymentUrl } from '../services/ozonPaymentUrl.js'
 import { getPendingCheckoutAttempt, createOrReuseCheckoutAttempt, clearCheckoutAttempt } from '../services/checkoutAttempt.js'
 import './Cart.css'
 import './Checkout.css'
@@ -51,6 +54,8 @@ function Checkout() {
   const [estimate, setEstimate] = useState(idle)
   const [pending, setPending] = useState(recoverAttempt)
   const [orderState, setOrderState] = useState(idle)
+  const [paymentState, setPaymentState] = useState(idle)
+  const paymentLock = useRef(false)
   const submissionLock = useRef(false)
   const orderController = useRef(null)
   const promoTransition = useRef(false)
@@ -219,20 +224,59 @@ function Checkout() {
       const controller = new AbortController()
       orderController.current = controller
       // The helper has persisted the exact payload and UUID before this call.
-      const order = await createWebsiteOrder({ payload: saved.payload, idempotencyKey: saved.idempotencyKey, signal: controller.signal })
+      const confirmation = await createWebsiteOrder({ payload: saved.payload, idempotencyKey: saved.idempotencyKey, signal: controller.signal })
       let cleanupWarning = false
       try {
         if (!clearCheckoutAttempt(saved.idempotencyKey)) cleanupWarning = true
       } catch { cleanupWarning = true }
       clearCart()
       setPending({ status: 'ready', attempt: null })
-      setOrderState({ status: 'success', order, cleanupWarning })
+      setOrderState({ status: 'success', ...confirmation, cleanupWarning })
       // Keep the synchronous lock after success, including cart clearing.
     } catch (error) {
       setPending(recoverAttempt())
       setOrderState({ status: 'error', message: orderErrorMessage(error), retryAfter: error.retryAfter })
       submissionLock.current = false
     } finally { orderController.current = null }
+  }
+
+  const canPay = WEBSITE_OZON_PAY_ENABLED && orderState.status === 'success' && Boolean(orderState.paymentAccessToken)
+
+  async function initializePayment() {
+    if (!canPay || paymentLock.current || paymentState.status === 'success') return
+    paymentLock.current = true
+    setPaymentState({ status: 'loading' })
+    const context = {
+      orderId: orderState.order.id,
+      paymentAccessToken: orderState.paymentAccessToken,
+    }
+    let payment
+    try {
+      payment = await createWebsitePayment(context)
+    } catch (error) {
+      const initialized = error.kind === 'invalid_response' && error.status === 200
+      if (!initialized) paymentLock.current = false
+      setPaymentState({ status: initialized ? 'blocked' : 'error', message: error.message })
+      return
+    }
+
+    // A payment was initialized. Do not send another initialization request
+    // if validation, storage or navigation fails afterward.
+    const destination = validateOzonPaymentUrl(payment.payLink)
+    if (!destination) {
+      setPaymentState({ status: 'blocked', message: 'Не удалось открыть страницу оплаты: получена недействительная ссылка.' })
+      return
+    }
+    if (!savePaymentReturnContext(context)) {
+      setPaymentState({ status: 'blocked', message: 'Не удалось сохранить разрешение на проверку оплаты в этой вкладке.' })
+      return
+    }
+    try {
+      window.location.assign(destination)
+      setPaymentState({ status: 'success' })
+    } catch {
+      setPaymentState({ status: 'blocked', canCheck: true, message: 'Не удалось открыть страницу оплаты.' })
+    }
   }
 
   const stateMessage = (state) => state.status === 'error' ? <p className="cart-error" role="alert">{state.message}</p> : state.status === 'loading' ? <p role="status">Проверяем…</p> : null
@@ -243,6 +287,14 @@ function Checkout() {
       <h2>Заказ № {orderState.order.orderNumber} создан</h2>
       <p>Итого: {formatRubles(orderState.order.total)}</p>
       <p>Заказ ещё не оплачен.</p>
+      {canPay && <>
+        <button type="button" className="button" disabled={['loading', 'success', 'blocked'].includes(paymentState.status)} onClick={initializePayment}>ПЕРЕЙТИ К ОПЛАТЕ</button>
+        {paymentState.status === 'loading' && <p>Подготавливаем оплату…</p>}
+        {paymentState.status === 'success' && <p>Оплата подготовлена.</p>}
+        {(paymentState.status === 'success' || paymentState.canCheck)
+          && <Link className="button" to="/payment-success">Проверить статус оплаты</Link>}
+        {['error', 'blocked'].includes(paymentState.status) && <p className="cart-error" role="alert">{paymentState.message}</p>}
+      </>}
       {(orderState.cleanupWarning || storageError) && <p className="cart-error">Заказ создан, но не удалось полностью очистить локальные данные. Не оформляйте его повторно.</p>}
       <Link className="button" to="/catalog">ПЕРЕЙТИ В КАТАЛОГ</Link>
     </section> : <>
@@ -304,7 +356,7 @@ function Checkout() {
           <dl><div><dt>Стоимость товаров</dt><dd>{totals ? formatRubles(totals.subtotal) : 'Недоступна'}</dd></div><div><dt>Скидка по промокоду</dt><dd>{totals ? formatRubles(-totals.discount) : 'Недоступна'}</dd></div><div><dt>Доставка</dt><dd>{delivery ? formatRubles(delivery.customerDeliveryPrice) : 'Не рассчитана'}</dd></div><div className="cart-summary-total"><dt>ПРЕДВАРИТЕЛЬНО ИТОГО</dt><dd>{totals && delivery && Number.isFinite(totals.total + delivery.customerDeliveryPrice) ? formatRubles(totals.total + delivery.customerDeliveryPrice) : 'Не рассчитано'}</dd></div></dl>
           <p className="checkout-note">Предварительная оценка. Окончательная сумма будет подтверждена при оформлении заказа.</p>
         </section>
-        <section className="cart-panel"><h2>ПОДТВЕРЖДЕНИЕ ЗАКАЗА</h2><button className="button" type="button" disabled={!checkoutReady} onClick={() => submitOrder()}>ПОДТВЕРДИТЬ ЗАКАЗ</button><p className="checkout-note">Для подтверждения заполните контакты и город, проверьте пункт выдачи и рассчитайте доставку. Промокод должен быть проверен или удалён. Недействительный код не используется.</p><p className="checkout-note">Подтверждение создаёт неоплаченный заказ. Оплата пока недоступна.</p></section>
+        <section className="cart-panel"><h2>ПОДТВЕРЖДЕНИЕ ЗАКАЗА</h2><button className="button" type="button" disabled={!checkoutReady} onClick={() => submitOrder()}>ПОДТВЕРДИТЬ ЗАКАЗ</button><p className="checkout-note">Для подтверждения заполните контакты и город, проверьте пункт выдачи и рассчитайте доставку. Промокод должен быть проверен или удалён. Недействительный код не используется.</p><p className="checkout-note">Подтверждение создаёт неоплаченный заказ.{!WEBSITE_OZON_PAY_ENABLED && ' Оплата пока недоступна.'}</p></section>
       </aside></fieldset>
     </>}
     </>}
